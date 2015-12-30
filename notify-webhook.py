@@ -6,9 +6,12 @@ import re
 import os
 import subprocess
 from datetime import datetime
-import simplejson as json
 from itertools import chain, repeat
 from collections import OrderedDict
+
+import simplejson as json
+import requests
+
 
 EMAIL_RE = re.compile("^\"?(.*)\"? <(.*)>$")
 DIFF_TREE_RE = re.compile("^:(?P<src_mode>[0-9]{6}) (?P<dst_mode>[0-9]{6}) (?P<src_hash>[0-9a-f]{7,40}) (?P<dst_hash>[0-9a-f]{7,40}) (?P<status>[ADMTUX]|[CR][0-9]{1,3})\s+(?P<file1>\S+)(?:\s+(?P<file2>\S+))?$", re.MULTILINE)
@@ -265,17 +268,13 @@ def make_json(old, new, ref):
     if base_ref:
         data['base_ref'] = base_ref
 
-    return json.dumps(data)
+    return data
 
 def post(url, data):
     headers = {
         'Content-Type': POST_CONTENTTYPE,
-        'X-GitHub-Event': 'push',
+        'X-Git-Event': 'push',
     }
-    if POST_CONTENTTYPE == 'application/json':
-        postdata = data
-    elif POST_CONTENTTYPE == 'application/x-www-form-urlencoded':
-        postdata = urllib.parse.urlencode({'payload': data}).encode('UTF-8')
     if POST_SECRET_TOKEN is not None:
         import hmac
         import hashlib
@@ -283,28 +282,11 @@ def post(url, data):
         signature = 'sha1=' + hmacobj.hexdigest()
         headers['X-Hub-Signature'] = signature
 
-    request = urllib.request.Request(url, postdata, headers)
-
-    # Default handler
-    handler = urllib.request.HTTPHandler
-    # Override handler for passwords
-    if POST_USER is not None or POST_PASS is not None:
-        password_mgr = urllib.request.HTTPPasswordMgrWithDefaultRealm()
-        password_mgr.add_password(POST_REALM, url, POST_USER, POST_PASS)
-        handlerfunc = urllib.request.HTTPBasicAuthHandler
-        if POST_REALM is not None:
-            handlerfunc = urllib.request.HTTPDigestAuthHandler
-        handler = handlerfunc(password_mgr)
-
-    opener = urllib.request.build_opener(handler)
-
-    try:
-        u = opener.open(request)
-        u.read()
-        u.close()
-    except urllib.error.HTTPError as error:
+    resp = requests.post(url, headers=headers, json=data)
+    if resp.status_code > 300:
         errmsg = "POST to %s returned error code %s." % (POST_URL, str(error.code))
         print(errmsg, file=sys.stderr)
+
 
 if __name__ == '__main__':
     for line in sys.stdin:
