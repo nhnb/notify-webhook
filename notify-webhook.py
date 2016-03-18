@@ -1,7 +1,6 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 
 import sys
-import urllib.request, urllib.parse, urllib.error
 import re
 import os
 import subprocess
@@ -9,8 +8,9 @@ from datetime import datetime
 from itertools import chain, repeat
 from collections import OrderedDict
 
-import simplejson as json
-import requests
+import json
+import httplib
+import urlparse
 
 
 EMAIL_RE = re.compile("^\"?(.*)\"? <(.*)>$")
@@ -282,10 +282,8 @@ def post(url, data):
         signature = 'sha1=' + hmacobj.hexdigest()
         headers['X-Hub-Signature'] = signature
 
-    resp = requests.post(url, headers=headers, json=data)
-    if resp.status_code > 300:
-        errmsg = "POST to %s returned error code %s." % (POST_URL, str(error.code))
-        print(errmsg, file=sys.stderr)
+    u = urlparse.urlparse(url)
+    httplib.HTTPConnection(u.hostname, u.port).request("POST", url, output.output, headers)
 
 
 if __name__ == '__main__':
