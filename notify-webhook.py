@@ -268,13 +268,18 @@ def make_json(old, new, ref):
     if base_ref:
         data['base_ref'] = base_ref
 
-    return data
+    return json.dumps(data)
 
 def post(url, data):
     headers = {
         'Content-Type': POST_CONTENTTYPE,
         'X-Git-Event': 'push',
     }
+    if POST_CONTENTTYPE == 'application/json':
+        postdata = data
+    elif POST_CONTENTTYPE == 'application/x-www-form-urlencoded':
+        postdata = urllib.parse.urlencode({'payload': data}).encode('UTF-8')
+
     if POST_SECRET_TOKEN is not None:
         import hmac
         import hashlib
@@ -283,7 +288,11 @@ def post(url, data):
         headers['X-Hub-Signature'] = signature
 
     u = urlparse.urlparse(url)
-    httplib.HTTPConnection(u.hostname, u.port).request("POST", url, output.output, headers)
+    if u.scheme == "https":
+        con = httplib.HTTPSConnection(u.hostname, u.port)
+    else:
+       con = httplib.HTTPConnection(u.hostname, u.port)
+    con.request("POST", url, postdata, headers)
 
 
 if __name__ == '__main__':
