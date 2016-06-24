@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import base64
 import sys
 import re
 import os
@@ -292,7 +293,15 @@ def post(url, data):
         con = httplib.HTTPSConnection(u.hostname, u.port)
     else:
        con = httplib.HTTPConnection(u.hostname, u.port)
+    if not u.username == None and not u.password == None:
+       headers["Authorization"] = "Basic " + base64.b64encode(u.username + ":" + u.password)
     con.request("POST", url, postdata, headers)
+
+    # Verify response
+    response = con.getresponse()
+    if response.status != 200:
+        print(str(response.status) + " " + response.reason)
+        sys.exit(1)
 
 
 if __name__ == '__main__':
