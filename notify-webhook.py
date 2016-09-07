@@ -230,6 +230,20 @@ def make_json(old, new, ref):
     compareurl = None
     if COMPARE_URL is not None: compareurl = COMPARE_URL % (old, new)
 
+    pusher = ''
+    if os.environ.has_key('GL_USER'):
+        pusher = os.environ['GL_USER']
+    elif os.environ.has_key('REMOTE_USER'):
+        pusher = os.environ['REMOTE_USER']
+    elif os.environ.has_key('USER'):
+        pusher = os.environ['USER']
+
+    addr = ''
+    if os.environ.has_key('REMOTE_ADDR'):
+        addr = os.environ['REMOTE_ADDR']
+    elif  os.environ.has_key('SSH_CLIENT'):
+        addr = os.environ['SSH_CLIENT']
+
     data = {
         'before': old,
         'after': new,
@@ -242,9 +256,18 @@ def make_json(old, new, ref):
             'owner': {
                 'name': REPO_OWNER_NAME,
                 'email': REPO_OWNER_EMAIL
-                }
             }
-        }
+        },
+        'pusher' : {
+            'name': pusher
+        },
+        'sender': {
+            'login': pusher,
+            'addr': addr
+        },
+        'user_name': pusher,
+        'user_addr': addr
+    }
 
     revisions = get_revisions(old, new)
     commits = []
