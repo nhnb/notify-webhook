@@ -318,7 +318,10 @@ def post(url, data):
        con = httplib.HTTPConnection(u.hostname, u.port)
     if not u.username == None and not u.password == None:
        headers["Authorization"] = "Basic " + base64.b64encode(u.username + ":" + u.password)
-    con.request("POST", url, postdata, headers)
+    url_prefix = u.scheme + "://" + u.hostname + u.path
+    if u.query != "":
+        url_prefix = url_prefix + "?" + u.query
+    con.request("POST", url_prefix, postdata, headers)
 
     # Verify response
     response = con.getresponse()
